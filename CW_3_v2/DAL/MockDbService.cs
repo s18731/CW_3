@@ -20,14 +20,18 @@ namespace CW_3_v2.DAL
 
         public void CreateStudent(Student student)
         {
-            _students.ToList().Add(
-                new Student { 
-                    IdStudent = (_students.ToList().Max<Student>(x => x.IdStudent) + 1), 
-                    FirstName = student.FirstName, 
+            List<Student> tmpList = new List<Student>();
+            tmpList.Add(
+                new Student
+                {
+                    IdStudent = (_students.ToList().Max<Student>(x => x.IdStudent) + 1),
+                    FirstName = student.FirstName,
                     LastName = student.LastName,
-                    IndexNumber = $"s{new System.Random().Next(1, 20000)}" 
+                    IndexNumber = $"s{new System.Random().Next(1, 20000)}"
                 }
-                );
+            );
+
+            _students.Concat(tmpList);
         }
 
         public IEnumerable<Student> GetStudents()
