@@ -4,6 +4,7 @@ using System.Linq;
 using CW_3_v2.DAL;
 using CW_3_v2.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Data.SqlClient;
 
 namespace CW_3_v2.Controllers
 {
@@ -43,14 +44,28 @@ namespace CW_3_v2.Controllers
         [HttpGet("{id}")]
         public IActionResult GetStudent(int id)
         {
-                var filtered = from Student s in _dbService.GetStudents().ToList()
-                               where s.IdStudent == id
-                               select s;
+            var st = new Student();
 
-                if (filtered.Any())
-                    return Ok(filtered);
-                else
-                    return NotFound(NoIDFoundResponse);
+            using (var client = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
+            using (var com = new SqlCommand())
+            {
+                com.Connection = client;
+                com.CommandText = "SELECT * FROM Student WHERE Student.IndexNumber=@id";
+                com.Parameters.AddWithValue("id", "s" + id);
+
+                client.Open();
+                var dr = com.ExecuteReader();
+                while (dr.Read())
+                {
+                    st.IndexNumber = dr["IndexNumber"].ToString();
+                    st.FirstName = dr["FirstName"].ToString();
+                    st.LastName = dr["LastName"].ToString();
+                    st.BirthDate = dr["BirthDate"].ToString();
+                    st.IdEnrollment = Int32.Parse(dr["IdEnrollment"].ToString());
+                }
+            }
+
+            return Ok(st);
         }
 
         [HttpPost]
