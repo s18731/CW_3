@@ -43,8 +43,8 @@ namespace CW_3_v2.DAL
         {
             var listWithoutDeletedObject = _students.ToList();
             var response = _students.Where((x => x.IdStudent == id)).ToList();
-
-            listWithoutDeletedObject.Remove(listWithoutDeletedObject.First<Student>(x => x.IdStudent == id));
+            
+            listWithoutDeletedObject.Remove(response.First());
             
             _students = listWithoutDeletedObject;
 
