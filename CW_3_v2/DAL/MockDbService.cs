@@ -1,8 +1,6 @@
 ﻿using CW_3_v2.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Data;
-using System.Data.SqlClient;
 
 namespace CW_3_v2.DAL
 {
@@ -12,7 +10,7 @@ namespace CW_3_v2.DAL
 
         static MockDbService()
         {
-                _students = new List<Student>
+            _students = new List<Student>
             {
                 new Student{IdStudent=0, FirstName="Jan", LastName="Kowalski", IndexNumber = $"s{new System.Random().Next(1, 20000)}"},
                 new Student{IdStudent=1, FirstName="Anna", LastName="Malewska", IndexNumber = $"s{new System.Random().Next(1, 20000)}"},
@@ -45,9 +43,9 @@ namespace CW_3_v2.DAL
         {
             var listWithoutDeletedObject = _students.ToList();
             var response = _students.Where((x => x.IdStudent == id)).ToList();
-
+            
             listWithoutDeletedObject.Remove(response.First());
-
+            
             _students = listWithoutDeletedObject;
 
             return response;
