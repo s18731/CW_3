@@ -61,21 +61,87 @@ namespace CW_3_v2.Controllers
                 /* checking if database contains studies with given name */
             }
 
-
-            var enrollment = new Enrollment();
+            /* enrollments */
             using (var client = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
             using (var com = new SqlCommand())
             {
                 com.Connection = client;
-                com.CommandText = "SELECT * FROM Student";
+                com.CommandText = "SELECT TOP 1 IdStudy FROM Enrollment WHERE Enrollment.Semester = 1 ORDER BY Enrollment.StartDate;";
+                com.Parameters.AddWithValue("postedStudiesName", student.Studies);
+
+                client.Open();
+                var dr = com.ExecuteReader();
+                if (!dr.HasRows)
+                {
+                    /* insert operation we perform if table Enrollments does not contain given study */
+                    DateTime currentDateTime = DateTime.Now;
+                    string formattedDate = currentDateTime.ToString("d");
+                    using (var client2 = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
+                    using (var com2 = new SqlCommand())
+                    {
+                        com2.Connection = client;
+                        com2.CommandText = "INSERT INTO Enrollment(IdEnrollment, Semester, IdStudy, StartDate) VALUES (SELECT MAX(Enrollment.IdEnrollment) FROM Enrollment + 1, 1, SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @courseName, @currDate)";
+                        com2.Parameters.AddWithValue("courseName", student.Studies);
+                        com2.Parameters.AddWithValue("currDate", formattedDate);
+
+                        client2.Open();
+                        var nonq = com2.ExecuteNonQuery();
+
+                        client2.Close();
+                    }
+                    /* insert operation we perform if table Enrollments does not contain given study */
+                }
+                else
+                {
+                    /* inserting student */
+                    using (var client2 = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
+                    using (var com2 = new SqlCommand())
+                    {
+                        com2.Connection = client;
+                        com2.CommandText = "INSERT INTO Student(IndexNumber, FirstName, LastName, BirthDate) VALUES (@IndexNumber, @FirstName, @LastName, @BirthDate, SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @courseName)";
+                        
+                        com2.Parameters.AddWithValue("IndexNumber", student.IndexNumber);
+                        com2.Parameters.AddWithValue("FirstName", student.FirstName);
+                        com2.Parameters.AddWithValue("LastName", student.LastName);
+                        com2.Parameters.AddWithValue("BirthDate", student.BirthDate);
+                        com2.Parameters.AddWithValue("courseName", student.Studies);
+
+                        client2.Open();
+                        var nonq = com2.ExecuteNonQuery();
+
+                        client2.Close();
+                    }
+                    /* inserting student */
+                }
+
+                client.Close();
+            }
+            /* enrollments */
+
+            /* returned result */
+
+            var returnedEnroll = new Enrollment();
+            using (var client = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
+            using (var com = new SqlCommand())
+            {
+                com.Connection = client;
+                com.CommandText = "SELECT DISTINCT * FROM Enrollment WHERE Enrollment.IdEnrollment IS (SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @courseName)";
+                com.Parameters.AddWithValue("courseName", student.Studies);
 
                 client.Open();
                 var dr = com.ExecuteReader();
                 dr.Read();
 
+                returnedEnroll.IdEnrollment = Int32.Parse(dr["IdEnrollment"].ToString());
+                returnedEnroll.IdStudy = Int32.Parse(dr["FirstName"].ToString());
+                returnedEnroll.Semester = Int32.Parse(dr["LastName"].ToString());
+                returnedEnroll.StartDate = dr["BirthDate"].ToString();
+
                 client.Close();
             }
-            return Ok(enrollment);
+
+            /* returned result */
+            return Created("Student created", returnedEnroll);
         }
     }
 }
