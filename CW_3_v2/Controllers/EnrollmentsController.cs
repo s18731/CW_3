@@ -79,13 +79,22 @@ namespace CW_3_v2.Controllers
                     using (var client2 = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
                     using (var com2 = new SqlCommand())
                     {
+                        SqlTransaction transaction = client2.BeginTransaction("Transaction");
                         com2.Connection = client;
                         com2.CommandText = "INSERT INTO Enrollment(IdEnrollment, Semester, IdStudy, StartDate) VALUES (SELECT MAX(Enrollment.IdEnrollment) FROM Enrollment + 1, 1, SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @courseName, @currDate)";
                         com2.Parameters.AddWithValue("courseName", student.Studies);
                         com2.Parameters.AddWithValue("currDate", formattedDate);
 
                         client2.Open();
-                        var nonq = com2.ExecuteNonQuery();
+                        try
+                        {
+                            var nonq = com2.ExecuteNonQuery();
+                        }
+                        catch (SqlException e)
+                        {
+                            transaction.Rollback();
+                            return BadRequest();
+                        }
 
                         client2.Close();
                     }
@@ -97,6 +106,7 @@ namespace CW_3_v2.Controllers
                     using (var client2 = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
                     using (var com2 = new SqlCommand())
                     {
+                        SqlTransaction transaction = client2.BeginTransaction("Transaction");
                         com2.Connection = client;
                         com2.CommandText = "INSERT INTO Student(IndexNumber, FirstName, LastName, BirthDate) VALUES (@IndexNumber, @FirstName, @LastName, @BirthDate, SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @courseName)";
                         
@@ -107,7 +117,16 @@ namespace CW_3_v2.Controllers
                         com2.Parameters.AddWithValue("courseName", student.Studies);
 
                         client2.Open();
-                        var nonq = com2.ExecuteNonQuery();
+                        
+                        try
+                        {
+                            var nonq = com2.ExecuteNonQuery();
+                        }
+                        catch (SqlException e)
+                        {
+                            transaction.Rollback();
+                            return BadRequest();
+                        }
 
                         client2.Close();
                     }
