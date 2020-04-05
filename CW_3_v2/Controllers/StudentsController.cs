@@ -55,14 +55,15 @@ namespace CW_3_v2.Controllers
 
                 client.Open();
                 var dr = com.ExecuteReader();
-                while (dr.Read())
-                {
-                    st.IndexNumber = dr["IndexNumber"].ToString();
-                    st.FirstName = dr["FirstName"].ToString();
-                    st.LastName = dr["LastName"].ToString();
-                    st.BirthDate = dr["BirthDate"].ToString();
-                    st.IdEnrollment = Int32.Parse(dr["IdEnrollment"].ToString());
-                }
+                dr.Read();
+                
+                st.IndexNumber = dr["IndexNumber"].ToString();
+                st.FirstName = dr["FirstName"].ToString();
+                st.LastName = dr["LastName"].ToString();
+                st.BirthDate = dr["BirthDate"].ToString();
+                st.IdEnrollment = Int32.Parse(dr["IdEnrollment"].ToString());
+                
+                client.Close();
             }
 
             return Ok(st);
