@@ -15,27 +15,27 @@ namespace CW_3_v2.Controllers
     public class EnrollmentsController : ControllerBase
     {
         [HttpPost]
-        public IActionResult InsertStudent(EnrolmentPost student)
+        public IActionResult InsertStudent(EnrollmentPost student)
         {
             if (student.IndexNumber != null)
             {
                 /* uniqueness of index number */
-                    using (var client = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
-                    using (var com = new SqlCommand())
-                    {
-                        com.Connection = client;
-                        com.CommandText = "SELECT COUNT(*) as 'isUnique' FROM Student WHERE Student.IndexNumber = @postedIndexNumber";
-                        com.Parameters.AddWithValue("postedIndexNumber", student.IndexNumber);
+                using (var client = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
+                using (var com = new SqlCommand())
+                {
+                    com.Connection = client;
+                    com.CommandText = "SELECT COUNT(*) as 'isUnique' FROM Student WHERE Student.IndexNumber = @postedIndexNumber";
+                    com.Parameters.AddWithValue("postedIndexNumber", student.IndexNumber);
 
-                        client.Open();
-                        var dr = com.ExecuteReader();
-                        dr.Read();
+                    client.Open();
+                    var dr = com.ExecuteReader();
+                    dr.Read();
 
                     if (Int32.Parse(dr["isUnique"].ToString()) == 1)
                         return BadRequest("Student with given index number already exists in the database.");
 
-                        client.Close();
-                    }
+                    client.Close();
+                }
                 /* uniqueness of index number */
             }
 
@@ -109,7 +109,7 @@ namespace CW_3_v2.Controllers
                         SqlTransaction transaction = client2.BeginTransaction("Transaction");
                         com2.Connection = client;
                         com2.CommandText = "INSERT INTO Student(IndexNumber, FirstName, LastName, BirthDate) VALUES (@IndexNumber, @FirstName, @LastName, @BirthDate, SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @courseName)";
-                        
+
                         com2.Parameters.AddWithValue("IndexNumber", student.IndexNumber);
                         com2.Parameters.AddWithValue("FirstName", student.FirstName);
                         com2.Parameters.AddWithValue("LastName", student.LastName);
@@ -117,7 +117,7 @@ namespace CW_3_v2.Controllers
                         com2.Parameters.AddWithValue("courseName", student.Studies);
 
                         client2.Open();
-                        
+
                         try
                         {
                             var nonq = com2.ExecuteNonQuery();
@@ -144,7 +144,7 @@ namespace CW_3_v2.Controllers
             using (var com = new SqlCommand())
             {
                 com.Connection = client;
-                com.CommandText = "SELECT DISTINCT * FROM Enrollment WHERE Enrollment.IdEnrollment IS (SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @courseName)";
+                com.CommandText = "SELECT DISTINCT * FROM Enrollment WHERE Enrollment.IdEnrollment = (SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @courseName)";
                 com.Parameters.AddWithValue("courseName", student.Studies);
 
                 client.Open();
@@ -152,9 +152,9 @@ namespace CW_3_v2.Controllers
                 dr.Read();
 
                 returnedEnroll.IdEnrollment = Int32.Parse(dr["IdEnrollment"].ToString());
-                returnedEnroll.IdStudy = Int32.Parse(dr["FirstName"].ToString());
-                returnedEnroll.Semester = Int32.Parse(dr["LastName"].ToString());
-                returnedEnroll.StartDate = dr["BirthDate"].ToString();
+                returnedEnroll.IdStudy = Int32.Parse(dr["IdStudy"].ToString());
+                returnedEnroll.Semester = Int32.Parse(dr["Semester"].ToString());
+                returnedEnroll.StartDate = dr["StartDate"].ToString();
 
                 client.Close();
             }
@@ -162,5 +162,77 @@ namespace CW_3_v2.Controllers
             /* returned result */
             return Created("Student created", returnedEnroll);
         }
+
+        [HttpPost("{promotions}")]
+        public IActionResult Promote(PromotePost studies)
+        {
+            using (var client = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
+            using (var com = new SqlCommand())
+            {
+                com.Connection = client;
+                com.CommandText = "SELECT COUNT(*) as 'containsEnroll' FROM Enrollment WHERE Enrollment.IdStudy = (SELECT DISTINCT IdStudy FROM Studies WHERE Studies.Name = @postedStudiesName) AND Enrollment.Semester = @semsterNo";
+                com.Parameters.AddWithValue("postedStudiesName", studies.Studies);
+                com.Parameters.AddWithValue("semesterNo", studies.Semester);
+
+                client.Open();
+                var dr = com.ExecuteReader();
+                dr.Read();
+
+                if (Int32.Parse(dr["containsEnroll"].ToString()) == 1)
+                    return BadRequest("Database does not contain enroll with given parameters.");
+
+                client.Close();
+            }
+
+            /* executing procedure */
+            using (var client = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
+            using (var com = new SqlCommand())
+            {
+                com.Connection = client;
+                SqlTransaction transaction = client.BeginTransaction("Transaction");
+                com.CommandText = "EXECUTE promoteForNextSemester @studies , @semester";
+                com.Parameters.AddWithValue("studies", studies.Studies);
+                com.Parameters.AddWithValue("semester", studies.Semester);
+                try
+                {
+                    var nonq = com.ExecuteNonQuery();
+                }
+                catch (SqlException e)
+                {
+                    transaction.Rollback();
+                    return BadRequest();
+                }
+
+                client.Close();
+                /* executing procedure */
+
+                /* returned result */
+
+                var returnedEnroll = new Enrollment();
+                using (var client2 = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18731;Integrated Security=True"))
+                using (var com2 = new SqlCommand())
+                {
+                    com2.Connection = client2;
+                    com2.CommandText = "SELECT DISTINCT * FROM Enrollment WHERE Enrollment.IdStudy = (SELECT IdStudy FROM Study WHERE Study.Name = @Studies)";
+                    com2.Parameters.AddWithValue("courseName", studies.Studies);
+
+                    client2.Open();
+                    var dr2 = com2.ExecuteReader();
+                    dr2.Read();
+
+                    returnedEnroll.IdEnrollment = Int32.Parse(dr2["IdEnrollment"].ToString());
+                    returnedEnroll.IdStudy = Int32.Parse(dr2["IdStudy"].ToString());
+                    returnedEnroll.Semester = Int32.Parse(dr2["Semester"].ToString());
+                    returnedEnroll.StartDate = dr2["StartDate"].ToString();
+
+                    client2.Close();
+                }
+
+                /* returned result */
+
+                return Created("Enroll for updated students", returnedEnroll);
+            }
+        }
+       
     }
 }

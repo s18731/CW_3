@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace CW_3_v2.Models
 {
-    public class EnrolmentPost
+    public class EnrollmentPost
     {
         public string IndexNumber { get; set; }
         public string FirstName  { get; set; }
