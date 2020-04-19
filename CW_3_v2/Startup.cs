@@ -46,6 +46,16 @@ namespace CW_3_v2
 
             app.UseAuthorization();
 
+            app.UseMiddleware<LoggingMiddleware>();
+
+            app.Use(async (context, next) =>
+            {
+                Services.IStudentsDbService _dbService;
+		        _dbService = studentsDbService;
+                _dbService.IsStudentNumberUnique();
+                await next();
+            });
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
