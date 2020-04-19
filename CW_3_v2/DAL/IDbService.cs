@@ -9,6 +9,5 @@ namespace CW_3_v2.DAL
         public void CreateStudent(Student student);
         public IEnumerable<Student> UpdateStudent(Student student, int id);
         public IEnumerable<Student> RemoveStudent(int id);
-
     }
 }
